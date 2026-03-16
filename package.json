@@ -1,0 +1,18 @@
+{
+  "name": "bus-notify",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:create": "wrangler d1 create bus-notify-db",
+    "db:migrate": "wrangler d1 execute bus-notify-db --file=schema.sql",
+    "db:migrate:local": "wrangler d1 execute bus-notify-db --local --file=schema.sql",
+    "secret:setup": "echo 'Setting secrets...' && wrangler secret put RESEND_API_KEY && wrangler secret put FROM_EMAIL && wrangler secret put SITE_URL"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240620.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^3.60.0"
+  }
+}

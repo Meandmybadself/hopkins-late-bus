@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribed — Bus Delay Alerts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Unsubscribing...</h1>
+    <div id="message" class="message"></div>
+  </main>
+
+  <script>
+    const messageEl = document.getElementById("message");
+    const heading = document.querySelector("h1");
+
+    async function unsubscribe() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+
+      if (!token) {
+        heading.textContent = "Invalid Link";
+        messageEl.className = "message error";
+        messageEl.textContent = "No unsubscribe token found.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/unsubscribe?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          heading.textContent = "Unsubscribed";
+          messageEl.className = "message success";
+          messageEl.textContent = data.message;
+        } else {
+          heading.textContent = "Error";
+          messageEl.className = "message error";
+          messageEl.textContent = data.error || "Something went wrong.";
+        }
+      } catch {
+        heading.textContent = "Error";
+        messageEl.className = "message error";
+        messageEl.textContent = "Unable to connect. Please try again.";
+      }
+    }
+
+    unsubscribe();
+  </script>
+</body>
+</html>

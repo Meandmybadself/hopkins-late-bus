@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribe — Bus Delay Alerts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Unsubscribe</h1>
+    <p>Enter your email to remove all bus delay subscriptions.</p>
+
+    <form id="unsubscribe-form">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" required placeholder="parent@example.com">
+
+      <button type="submit">Unsubscribe</button>
+    </form>
+
+    <div id="message" class="message" hidden></div>
+
+    <p class="footer-link"><a href="index.html">Back to subscribe</a></p>
+  </main>
+
+  <script>
+    const form = document.getElementById("unsubscribe-form");
+    const messageEl = document.getElementById("message");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      messageEl.hidden = true;
+
+      const email = form.email.value.trim();
+
+      try {
+        const res = await fetch("/api/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await res.json();
+        messageEl.hidden = false;
+
+        if (res.ok) {
+          messageEl.className = "message success";
+          messageEl.textContent = data.message;
+          form.reset();
+        } else {
+          messageEl.className = "message error";
+          messageEl.textContent = data.error || "Something went wrong.";
+        }
+      } catch {
+        messageEl.hidden = false;
+        messageEl.className = "message error";
+        messageEl.textContent = "Unable to connect. Please try again.";
+      }
+    });
+  </script>
+</body>
+</html>

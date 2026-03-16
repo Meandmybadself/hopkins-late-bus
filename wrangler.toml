@@ -1,0 +1,15 @@
+name = "bus-notify"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bus-notify-db"
+database_id = "<your-d1-database-id>"
+
+[vars]
+TIMEZONE = "America/Chicago"
+SHEET_URL = "https://docs.google.com/spreadsheets/u/0/d/1fjfYhwB9YThz2_O0ZTQzKqZDJdwXMjD8m3MjyfuFHNw/pub?single=true&gid=0&range=a1:e100&output=html&widget=false"
+
+[triggers]
+crons = ["*/2 11-15 * * 1-5", "0 12 * * 1"]

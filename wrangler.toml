@@ -1,6 +1,12 @@
 name = "bus-notify"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+routes = [{ pattern = "latebus.meandmybadself.com", custom_domain = true }]
+
+[assets]
+directory = "./frontend"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
 
 [[d1_databases]]
 binding = "DB"

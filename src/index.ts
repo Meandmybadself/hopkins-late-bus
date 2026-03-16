@@ -38,6 +38,11 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
 
+    // Non-API routes — serve static assets
+    if (!pathname.startsWith("/api/")) {
+      return env.ASSETS.fetch(request);
+    }
+
     let response: Response;
 
     try {

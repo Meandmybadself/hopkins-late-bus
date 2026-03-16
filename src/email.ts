@@ -14,7 +14,7 @@ async function sendEmail(env: Env, params: SendEmailParams): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: env.FROM_EMAIL,
+      from: `Late Bus Alert <${env.FROM_EMAIL}>`,
       to: params.to,
       subject: params.subject,
       html: params.html,

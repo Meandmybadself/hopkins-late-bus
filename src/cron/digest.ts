@@ -45,8 +45,8 @@ export async function handleWeeklyDigest(env: Env): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: env.FROM_EMAIL,
-      to: env.FROM_EMAIL,
+      from: `Late Bus Alert <${env.FROM_EMAIL}>`,
+      to: env.OPERATOR_EMAIL,
       subject: "Bus Alerts Weekly Report",
       html: `
 <p>Weekly report for Bus Delay Alerts:</p>

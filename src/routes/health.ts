@@ -29,8 +29,8 @@ export async function handleHealth(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: env.FROM_EMAIL,
-        to: env.FROM_EMAIL,
+        from: `Late Bus Alert <${env.FROM_EMAIL}>`,
+        to: env.OPERATOR_EMAIL,
         subject: "Bus Alerts Health Check",
         html: `<p>Health check passed. D1 reachable: ${result.subscribers} subscriber(s) across ${result.routes} route(s).</p>`,
       }),

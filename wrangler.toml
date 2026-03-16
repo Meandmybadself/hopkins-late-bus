@@ -5,7 +5,7 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "bus-notify-db"
-database_id = "<your-d1-database-id>"
+database_id = "5b45795e-35fb-4de0-96e9-3c9565a0bcd3"
 
 [vars]
 TIMEZONE = "America/Chicago"

@@ -116,3 +116,22 @@ button:active {
 .footer-link a:hover {
   text-decoration: underline;
 }
+
+.disclaimer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.disclaimer a {
+  color: #999;
+  text-decoration: none;
+}
+
+.disclaimer a:hover {
+  color: #666;
+  text-decoration: underline;
+}

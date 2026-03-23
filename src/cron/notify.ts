@@ -4,7 +4,8 @@ import { sendDelayNotificationEmail } from "../email";
 export async function notifySubscribers(
   env: Env,
   delays: DelayRow[],
-  today: string
+  today: string,
+  sheetUrl: string
 ): Promise<void> {
   for (const delay of delays) {
     // Check if we already notified for this route today
@@ -32,7 +33,8 @@ export async function notifySubscribers(
           delay.busRoute,
           delay.minutesLate,
           delay.school,
-          sub.unsubscribe_token
+          sub.unsubscribe_token,
+          sheetUrl
         )
       )
     );

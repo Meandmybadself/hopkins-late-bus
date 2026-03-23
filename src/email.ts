@@ -54,7 +54,8 @@ export async function sendDelayNotificationEmail(
   busRoute: string,
   minutesLate: number,
   school: string,
-  unsubscribeToken: string
+  unsubscribeToken: string,
+  sheetUrl: string
 ): Promise<void> {
   const unsubscribeUrl = `${env.SITE_URL}/unsubscribed.html?token=${unsubscribeToken}`;
 
@@ -64,6 +65,7 @@ export async function sendDelayNotificationEmail(
     html: `
 <p>Heads up — <strong>Bus Route ${busRoute}</strong> is running approximately <strong>${minutesLate} minutes late</strong> this morning.</p>
 <p>School: ${school}</p>
+<p><a href="${sheetUrl}">View full late bus log</a></p>
 <hr>
 <p style="font-size:0.9em;color:#666;">
   Don't want these alerts anymore?

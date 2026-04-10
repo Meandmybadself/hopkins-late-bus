@@ -5,28 +5,34 @@ import { handleWeeklyDigest } from "./digest";
 
 function getLocalDateParts(tz: string): { today: string; isWeekend: boolean; totalMinutes: number } {
   const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-US", {
+
+  // Use en-CA for date parts — YYYY-MM-DD format is unambiguous and reliable across V8/ICU versions
+  const dateParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+  }).formatToParts(now);
+
+  const getDate = (type: string) => dateParts.find((p) => p.type === type)!.value;
+  const today = `${getDate("year")}-${getDate("month")}-${getDate("day")}`;
+
+  // Use en-US for time and weekday parts
+  const timeParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
     hour: "numeric",
     minute: "numeric",
     weekday: "short",
     hourCycle: "h23",
   }).formatToParts(now);
 
-  const get = (type: string) => parts.find((p) => p.type === type)!.value;
-
-  const year = get("year");
-  const month = get("month");
-  const day = get("day");
-  const hour = parseInt(get("hour"), 10);
-  const minute = parseInt(get("minute"), 10);
-  const weekday = get("weekday"); // "Sun", "Mon", ..., "Sat"
+  const getTime = (type: string) => timeParts.find((p) => p.type === type)!.value;
+  const hour = parseInt(getTime("hour"), 10);
+  const minute = parseInt(getTime("minute"), 10);
+  const weekday = getTime("weekday"); // "Sun", "Mon", ..., "Sat"
 
   return {
-    today: `${year}-${month}-${day}`,
+    today,
     isWeekend: weekday === "Sun" || weekday === "Sat",
     totalMinutes: hour * 60 + minute,
   };
@@ -34,17 +40,20 @@ function getLocalDateParts(tz: string): { today: string; isWeekend: boolean; tot
 
 export async function handleScheduled(env: Env): Promise<void> {
   const tz = env.TIMEZONE || "America/Chicago";
+  console.log(`handleScheduled invoked at UTC ${new Date().toISOString()}, tz=${tz}`);
 
   // Weekly digest runs on its own schedule (Monday 6am local)
   await handleWeeklyDigest(env);
 
   const { today, isWeekend, totalMinutes } = getLocalDateParts(tz);
+  console.log(`Local time: today=${today}, totalMinutes=${totalMinutes}, isWeekend=${isWeekend}`);
 
   const WINDOW_START = 6 * 60 + 30; // 6:30am
   const WINDOW_END = 8 * 60; // 8:00am
   const withinWindow = totalMinutes >= WINDOW_START && totalMinutes < WINDOW_END;
 
   if (isWeekend || !withinWindow) {
+    console.log(`Skipping: isWeekend=${isWeekend}, withinWindow=${withinWindow} (window ${WINDOW_START}–${WINDOW_END})`);
     return;
   }
 

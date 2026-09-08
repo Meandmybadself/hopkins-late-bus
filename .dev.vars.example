@@ -2,3 +2,5 @@ RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 FROM_EMAIL=alerts@yourdomain.com
 OPERATOR_EMAIL=you@gmail.com
 SITE_URL=http://localhost:8788
+# Gates /api/admin/*. Unset means the admin API refuses every request.
+ADMIN_SECRET=

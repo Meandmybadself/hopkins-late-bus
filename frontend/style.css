@@ -45,7 +45,8 @@ label {
 }
 
 input[type="text"],
-input[type="email"] {
+input[type="email"],
+select {
   width: 100%;
   padding: 0.625rem 0.75rem;
   border: 1px solid #ddd;
@@ -55,7 +56,8 @@ input[type="email"] {
   transition: border-color 0.15s;
 }
 
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -157,4 +159,18 @@ button:active {
 
 .prose a:hover {
   text-decoration: underline;
+}
+
+/* `select` inherits neither font nor background from the page in Safari, so
+   both are restated — everything else it now shares with the text inputs above. */
+select {
+  font-family: inherit;
+  background: #fff;
+  color: inherit;
+}
+
+.field-hint {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.8125rem;
+  color: #777;
 }

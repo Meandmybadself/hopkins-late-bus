@@ -1,5 +1,6 @@
 import { DelayRow } from "../types";
 import { normalizeBusRoute } from "../utils";
+import { resolveSchools } from "../schools";
 
 function parseTimestampDate(ts: string): string | null {
   // Timestamp format: "M/D/YYYY H:MM:SS"
@@ -9,7 +10,10 @@ function parseTimestampDate(ts: string): string | null {
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
-export async function fetchDelayRows(sheetUrl: string, today: string): Promise<DelayRow[]> {
+/** Scrape the published sheet into raw cell rows. Split out from
+ *  `fetchDelayRows` so `/api/options` can read the same table for its bus-number
+ *  suggestions without duplicating the HTMLRewriter dance. */
+async function fetchSheetRows(sheetUrl: string): Promise<string[][]> {
   const res = await fetch(sheetUrl);
   if (!res.ok) {
     throw new Error(`Failed to fetch sheet: ${res.status}`);
@@ -59,6 +63,11 @@ export async function fetchDelayRows(sheetUrl: string, today: string): Promise<D
     allRows.push([...pendingCells]);
   }
 
+  return allRows;
+}
+
+export async function fetchDelayRows(sheetUrl: string, today: string): Promise<DelayRow[]> {
+  const allRows = await fetchSheetRows(sheetUrl);
   const rows: DelayRow[] = [];
 
   // Skip header row (first row), process data rows
@@ -80,8 +89,29 @@ export async function fetchDelayRows(sheetUrl: string, today: string): Promise<D
     const minutesLate = parseInt(rawMinutes, 10);
     if (isNaN(minutesLate) || minutesLate <= 0) continue;
 
-    rows.push({ busRoute, school, minutesLate });
+    rows.push({ busRoute, school, schools: resolveSchools(school), minutesLate });
   }
 
   return rows;
+}
+
+/** Every bus number the sheet has ever carried, newest-first order discarded and
+ *  sorted numerically. These are the datalist suggestions on the subscribe form.
+ *
+ *  They are SUGGESTIONS and not a roster: the sheet only records buses that have
+ *  been reported LATE, so a bus that has run on time all year is missing from
+ *  this list and its parents must still be able to subscribe. That is the whole
+ *  reason the form takes free text with a datalist rather than a <select>. */
+export async function fetchKnownBusRoutes(sheetUrl: string): Promise<string[]> {
+  const allRows = await fetchSheetRows(sheetUrl);
+  const seen = new Set<string>();
+
+  for (let i = 1; i < allRows.length; i++) {
+    const raw = allRows[i]?.[1]?.trim();
+    if (!raw) continue;
+    const route = normalizeBusRoute(raw);
+    if (route && route !== "0") seen.add(route);
+  }
+
+  return [...seen].sort((a, b) => Number(a) - Number(b));
 }

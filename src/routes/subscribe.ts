@@ -1,6 +1,7 @@
 import { Env } from "../types";
 import { sendConfirmationEmail } from "../email";
 import { normalizeBusRoute } from "../utils";
+import { isKnownSchool, schoolLabel } from "../schools";
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -10,9 +11,10 @@ export async function handleSubscribe(
   request: Request,
   env: Env
 ): Promise<Response> {
-  const body = await request.json<{ email?: string; busRoute?: string }>();
+  const body = await request.json<{ email?: string; busRoute?: string; school?: string }>();
   const email = body.email?.trim().toLowerCase();
   const rawRoute = body.busRoute?.trim();
+  const school = body.school?.trim();
 
   if (!email || !isValidEmail(email)) {
     return Response.json(
@@ -28,13 +30,24 @@ export async function handleSubscribe(
     );
   }
 
+  // Rejected rather than stored as typed. An unknown school id can never match a
+  // delay — resolveSchools only ever produces ids from this list — so accepting
+  // one would create a subscription that is silently guaranteed to notify
+  // nobody, which is worse than a visible error at sign-up.
+  if (!school || !isKnownSchool(school)) {
+    return Response.json(
+      { error: "Please choose your school from the list." },
+      { status: 400 }
+    );
+  }
+
   const busRoute = normalizeBusRoute(rawRoute);
 
   // Check for existing confirmed subscription
   const existing = await env.DB.prepare(
-    "SELECT id, confirmed FROM subscribers WHERE email = ? AND bus_route = ?"
+    "SELECT id, confirmed FROM subscribers WHERE email = ? AND school = ? AND bus_route = ?"
   )
-    .bind(email, busRoute)
+    .bind(email, school, busRoute)
     .first<{ id: string; confirmed: number }>();
 
   if (existing?.confirmed) {
@@ -58,10 +71,10 @@ export async function handleSubscribe(
 
   try {
     await env.DB.prepare(
-      `INSERT INTO subscribers (id, email, bus_route, confirmed, confirmation_token, confirmation_token_expires_at, unsubscribe_token)
-       VALUES (?, ?, ?, 0, ?, ?, ?)`
+      `INSERT INTO subscribers (id, email, school, bus_route, confirmed, confirmation_token, confirmation_token_expires_at, unsubscribe_token)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?)`
     )
-      .bind(id, email, busRoute, confirmationToken, expiresAt, unsubscribeToken)
+      .bind(id, email, school, busRoute, confirmationToken, expiresAt, unsubscribeToken)
       .run();
   } catch {
     // Race condition: another request inserted the same email+route
@@ -71,7 +84,7 @@ export async function handleSubscribe(
     );
   }
 
-  await sendConfirmationEmail(env, email, busRoute, confirmationToken);
+  await sendConfirmationEmail(env, email, busRoute, schoolLabel(school), confirmationToken);
 
   return Response.json({
     message: "Check your email to confirm your subscription.",

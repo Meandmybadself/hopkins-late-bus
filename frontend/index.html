@@ -26,8 +26,19 @@
     <p>Get an email when your child's bus is running late.</p>
 
     <form id="subscribe-form">
-      <label for="bus-route">Bus Route Number</label>
-      <input type="text" id="bus-route" name="busRoute" required placeholder="e.g. 42">
+      <label for="school">School</label>
+      <select id="school" name="school" required>
+        <option value="">Choose your school…</option>
+      </select>
+
+      <label for="bus-route">Bus Number</label>
+      <!-- A datalist, not a <select>: the suggestions come from buses that have
+           been REPORTED LATE, so a bus that has run on time all year is missing
+           from them. A strict dropdown would lock those families out entirely. -->
+      <input type="text" id="bus-route" name="busRoute" required placeholder="e.g. 137"
+             list="bus-routes" inputmode="numeric" autocomplete="off">
+      <datalist id="bus-routes"></datalist>
+      <p class="field-hint">Don't see your bus? Type its number — any number works.</p>
 
       <label for="email">Email Address</label>
       <input type="email" id="email" name="email" required placeholder="parent@example.com">
@@ -49,10 +60,40 @@
     const form = document.getElementById("subscribe-form");
     const messageEl = document.getElementById("message");
 
+    // Both lists come from the server so the school ids the form submits are
+    // exactly the ones the matcher understands. Hardcoding them here would let
+    // the two drift, and a drifted school id produces a subscription that is
+    // accepted and then silently never matches a delay.
+    (async () => {
+      try {
+        const res = await fetch("/api/options");
+        if (!res.ok) return;
+        const { schools, busRoutes } = await res.json();
+
+        const schoolEl = document.getElementById("school");
+        for (const s of schools || []) {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = s.label;
+          schoolEl.appendChild(opt);
+        }
+
+        const listEl = document.getElementById("bus-routes");
+        for (const r of busRoutes || []) {
+          const opt = document.createElement("option");
+          opt.value = r;
+          listEl.appendChild(opt);
+        }
+      } catch {
+        // Suggestions are a convenience; the form still submits without them.
+      }
+    })();
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       messageEl.hidden = true;
 
+      const school = form.school.value;
       const busRoute = form.busRoute.value.trim();
       const email = form.email.value.trim();
 
@@ -60,7 +101,7 @@
         const res = await fetch("/api/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, busRoute }),
+          body: JSON.stringify({ email, school, busRoute }),
         });
 
         const data = await res.json();

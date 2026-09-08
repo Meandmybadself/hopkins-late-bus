@@ -7,6 +7,8 @@ import {
 } from "./routes/unsubscribe";
 import { handleScheduled } from "./cron/handler";
 import { handleHealth } from "./routes/health";
+import { handleOptions } from "./routes/options";
+import { handleAdminSubscribers } from "./routes/admin";
 
 function corsHeaders(env: Env): Record<string, string> {
   return {
@@ -63,9 +65,28 @@ export default {
           response = await handleUnsubscribeByToken(request, env);
           break;
 
+        case pathname === "/api/options" && request.method === "GET":
+          response = await handleOptions(request, env);
+          break;
+
+        case pathname === "/api/admin/subscribers" && request.method === "GET":
+          response = await handleAdminSubscribers(request, env);
+          break;
+
         case pathname === "/api/health" && request.method === "GET":
           response = await handleHealth(request, env);
           break;
+
+        case pathname === "/api/trigger" && request.method === "POST": {
+          const auth = request.headers.get("Authorization");
+          if (!env.CRON_SECRET || auth !== `Bearer ${env.CRON_SECRET}`) {
+            response = Response.json({ error: "Unauthorized" }, { status: 401 });
+            break;
+          }
+          await handleScheduled(env);
+          response = Response.json({ ok: true });
+          break;
+        }
 
         default:
           response = Response.json(

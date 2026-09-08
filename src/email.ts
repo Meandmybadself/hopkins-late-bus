@@ -31,16 +31,17 @@ export async function sendConfirmationEmail(
   env: Env,
   email: string,
   busRoute: string,
+  schoolName: string,
   confirmationToken: string
 ): Promise<void> {
   const confirmUrl = `${env.SITE_URL}/confirm.html?token=${confirmationToken}`;
 
   await sendEmail(env, {
     to: email,
-    subject: `Confirm your bus delay subscription — Route ${busRoute}`,
+    subject: `Confirm your bus delay subscription — Bus ${busRoute} at ${schoolName}`,
     html: `
 <p>Hi there,</p>
-<p>You signed up to receive morning delay alerts for <strong>Bus Route ${busRoute}</strong>.</p>
+<p>You signed up to receive delay alerts for <strong>Bus ${busRoute}</strong> at <strong>${schoolName}</strong>.</p>
 <p>Please confirm your email address by clicking the link below:</p>
 <p><a href="${confirmUrl}">Confirm my subscription</a></p>
 <p>This link expires in 24 hours. If you didn't request this, you can safely ignore this email.</p>
@@ -61,15 +62,14 @@ export async function sendDelayNotificationEmail(
 
   await sendEmail(env, {
     to: email,
-    subject: `Bus ${busRoute} is running late`,
+    subject: `Bus ${busRoute} is running late — ${school}`,
     html: `
-<p>Heads up — <strong>Bus Route ${busRoute}</strong> is running approximately <strong>${minutesLate} minutes late</strong> this morning.</p>
-<p>School: ${school}</p>
+<p>Heads up — <strong>Bus ${busRoute}</strong> at <strong>${school}</strong> is running approximately <strong>${minutesLate} minutes late</strong>.</p>
 <p><a href="${sheetUrl}">View full late bus log</a></p>
 <hr>
 <p style="font-size:0.9em;color:#666;">
   Don't want these alerts anymore?
-  <a href="${unsubscribeUrl}">Unsubscribe from Route ${busRoute}</a>
+  <a href="${unsubscribeUrl}">Unsubscribe from Bus ${busRoute} at ${school}</a>
 </p>
     `.trim(),
   });

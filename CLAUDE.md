@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm run dev              # Start local dev server (wrangler dev)
 pnpm run deploy           # Deploy to Cloudflare
 pnpm run typecheck        # TypeScript type checking
-pnpm run db:migrate       # Run schema migrations on production D1
-pnpm run db:migrate:local # Run schema migrations locally
+pnpm run db:migrate       # Apply schema.sql to production D1 (idempotent)
+pnpm run db:migrate:local # Same, locally
 pnpm run secret:setup     # Interactively set Cloudflare secrets
 ```
 
@@ -35,6 +35,9 @@ Routes live in `src/routes/`:
 - `confirm.ts` — verifies token, marks subscriber confirmed
 - `unsubscribe.ts` — handles both one-click token-based and form-based unsubscription
 - `health.ts` — uptime check endpoint
+- `options.ts` — `GET /api/options`, the school list + bus-number suggestions the
+  subscribe form populates itself from
+- `admin.ts` — `GET /api/admin/subscribers`, gated by `ADMIN_SECRET`
 
 ### Cron flow
 
@@ -46,11 +49,42 @@ Two cron triggers defined in `wrangler.toml`:
 
 `src/cron/sheet.ts` uses Cloudflare's streaming `HTMLRewriter` API to parse the published Google Sheet HTML table.
 
+### Schools
+
+`src/schools.ts` is the single definition of which schools exist. It matters more
+than it looks: the Google Form behind the sheet has an "Other" free-text escape,
+so the School column arrives in many spellings for the same place ("hhs", "HHs",
+"HHS/", "Hopkins High", "Hopkins High School" are all Hopkins High). Subscribers
+choose from a fixed list, so every sheet value is resolved to canonical ids by
+`resolveSchools()` and matching happens on ids alone — comparing raw text would
+deliver nothing while looking healthy.
+
+One value can resolve to SEVERAL schools: "HHS/NMS/WMS" is one bus serving three
+buildings, and each is deduped separately. A value that resolves to NONE is
+logged and skipped, never broadcast to the route — that log line is the only
+place a missing school will surface, so adding one means editing `SCHOOLS` and
+`ALIASES` together.
+
 ### Database schema
 
-Two tables in `schema.sql`:
-- `subscribers` — email, bus_route, confirmed, confirmation/unsubscribe tokens
-- `daily_notifications` — route + date deduplication for sent alerts
+Two tables in `schema.sql`, both keyed on school:
+- `subscribers` — email, **school**, bus_route, confirmed, confirmation/unsubscribe tokens
+- `daily_notifications` — **school** + route + date deduplication, plus `school_raw`
+  (what the sheet literally said)
+
+School is part of both unique keys because route numbers repeat across schools.
+Without it, bus 110 running late at Alice Smith suppressed the alert for bus 110
+at Eisenhower for the rest of the day.
+
+`schema.sql` is idempotent (`IF NOT EXISTS` throughout) and safe to re-run.
+Destructive changes live in `migrations/` and are run by hand, once.
+
+### Admin
+
+`/admin` lists subscribers and recent detected delays. It authenticates with a
+shared secret sent as `Authorization: Bearer <ADMIN_SECRET>` and held in
+localStorage. An **unset** `ADMIN_SECRET` refuses every request rather than
+allowing them.
 
 ### Local development
 
@@ -58,7 +92,11 @@ Requires a `.dev.vars` file (git-ignored) with:
 ```
 RESEND_API_KEY=re_...
 CRON_SECRET=...
+ADMIN_SECRET=...
 DIGEST_EMAIL=...
 ```
+
+Note that Resend rejects `@example.com` recipients; use `delivered@resend.dev`
+to exercise the subscribe flow locally without emailing anyone.
 
 The `SHEET_URL` and `TIMEZONE` env vars are set in `wrangler.toml` directly.
